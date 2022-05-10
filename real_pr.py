@@ -20,12 +20,13 @@ m = int(os*n)
 # generate the truth signal
 x0 = torch.rand((1,n)).detach().type(dtype)
 A = nn.Linear(n,m,bias=False).type(dtype)
+# torch.nn.init.normal_(A.weight.data)
 y = A(x0)
 int_y = torch.pow(y,2)
 y_obs = int_y.detach().type(dtype)
 
 # define the net and optim
-net = PRLinearPlus(num_output_channels=n)
+net = PRLinear(num_output_channels=n)
 net = net.type(dtype)
 
 optimizer = torch.optim.Adam([{'params':net.parameters()}], lr=0.01)
@@ -51,16 +52,16 @@ for step in range(num_iter):
     optimizer.zero_grad()
 
     # get the network output
-    out_x_m, out_x_m_2, alpha = net(net_input)
+    out_x_m = net(net_input)
 
     out_y = A(out_x_m)
     int_y = torch.pow(out_y,2)
 
-    total_loss = mse(int_y,y_obs) + alpha**2/2
+    total_loss = mse(int_y,y_obs)
     
     total_loss.backward()
     optimizer.step()
-    mse_l = dist_real(out_x_m_2,x0)
+    mse_l = dist_real(out_x_m,x0)
 #     mse_l_0 = min(mse(out_x_m,x0).data,mse(-out_x_m,x0).data)
     print('Iter: {:5d}---error: {:8f}----rel : {:8f}'.format(step,total_loss.item(), mse_l))
     if total_loss.item() < 1e-12:
