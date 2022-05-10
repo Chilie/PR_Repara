@@ -17,6 +17,8 @@ class AForward(nn.Module):
         super(AForward,self).__init__()
         self.lin1 = nn.Linear(in_c, out_c, bias=False)
         self.lin2 = nn.Linear(in_c, out_c, bias=False)
+        # torch.nn.init.normal_(self.lin1.weight.data)
+        # torch.nn.init.normal_(self.lin2.weight.data)
     def forward(self, x):
         x = x.reshape((1,-1,2))
         out_real = self.lin1(x[:,:,0])-self.lin2(x[:,:,1])
@@ -39,7 +41,7 @@ y_obs = int_y.detach().type(dtype)
 x00 = x0.reshape((1,-1,2))
 
 # define the net and optim
-net = PRLinearPlus(num_output_channels=2*n)
+net = PRLinear(num_output_channels=2*n)
 net = net.type(dtype)
 
 optimizer = torch.optim.Adam([{'params':net.parameters()}], lr=0.01)
@@ -65,16 +67,16 @@ for step in range(num_iter):
     optimizer.zero_grad()
 
     # get the network output
-    out_x_m, out_x_m_2, alpha = net(net_input)
+    out_x_m = net(net_input)
 
     out_y = A(out_x_m)
     int_y = torch.sum(torch.pow(out_y,2),-1)
 
-    total_loss = mse(int_y,y_obs) + alpha**2/2
+    total_loss = mse(int_y,y_obs)
     
     total_loss.backward()
     optimizer.step()
-    out_x_m_3 = out_x_m_2.reshape((1,-1,2))
+    out_x_m_3 = out_x_m.reshape((1,-1,2))
     mse_l = dist_comp(out_x_m_3,x00)
 #     mse_l_0 = min(mse(out_x_m,x0).data,mse(-out_x_m,x0).data)
     print('Iter: {:5d}---error: {:8f}----rel : {:8f}'.format(step,total_loss.item(), mse_l))
